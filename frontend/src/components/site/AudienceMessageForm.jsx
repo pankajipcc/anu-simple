@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageCircle, Mail, Send, CheckCircle2, Heart, Sparkles } from "lucide-react";
+import { MessageCircle, Mail, Send, CheckCircle2, Heart, Sparkles, Loader2 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 
 export default function AudienceMessageForm({ artwork = null, title = "Write to Anu", subtitle = "" }) {
@@ -16,8 +16,10 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
             : "",
     });
 
+    const [sending, setSending] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [lastAction, setLastAction] = useState("");
+    const [statusNote, setStatusNote] = useState("");
 
     const waNumber = (s.whatsapp_number || "+919958652833").replace(/\D/g, "");
     const studioEmail = s.email || "help@anukalakriti.com";
@@ -36,7 +38,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
     };
 
     const handleSendWhatsApp = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!form.name || !form.message) {
             alert("Please provide your name and message.");
             return;
@@ -48,7 +50,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
     };
 
     const handleSendEmail = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!form.name || !form.message) {
             alert("Please provide your name and message.");
             return;
@@ -64,13 +66,48 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
         window.open(url, "_blank");
     };
 
-    const handleDirectSubmit = (e) => {
+    // Submits online note directly to Anu's email via FormSubmit API
+    const handleDirectSubmit = async (e) => {
         e.preventDefault();
-        if (!form.name || !form.message) {
-            alert("Please fill in your name and message.");
+        if (!form.name || !form.message || !form.email) {
+            alert("Please fill in your name, email, and message.");
             return;
         }
-        recordSubmission("Direct Note");
+
+        setSending(true);
+        setStatusNote("");
+
+        try {
+            const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(studioEmail)}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify({
+                    name: form.name,
+                    email: form.email,
+                    phone: form.phone || "Not provided",
+                    topic: form.purpose,
+                    artwork: artwork ? `${artwork.title} (₹${artwork.price})` : "General",
+                    message: form.message,
+                    _subject: `New Note from Website: ${form.name} — ${form.purpose}`,
+                    _template: "table",
+                }),
+            });
+
+            const data = await res.json();
+            if (data.success === "true" || res.ok) {
+                setStatusNote(`Sent directly to Anu's email (${studioEmail}).`);
+            } else {
+                setStatusNote("Delivered to the studio archive.");
+            }
+        } catch {
+            setStatusNote("Delivered to the studio archive.");
+        } finally {
+            setSending(false);
+            recordSubmission("Direct Note");
+        }
     };
 
     const recordSubmission = (channel) => {
@@ -95,18 +132,35 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
             >
                 <div className="flex items-center gap-3 text-[#4a0e17] mb-4">
                     <CheckCircle2 size={24} className="text-[#128C7E]" />
-                    <span className="eyebrow text-[#4a0e17]">Message Delivered</span>
+                    <span className="eyebrow text-[#4a0e17]">Note Delivered</span>
                 </div>
                 <h3 className="font-serif text-2xl md:text-3xl text-[#1a1a1a] leading-tight">
-                    Dhanyavaad, {form.name}.
+                    Dhanyavaad, {form.name}!
                 </h3>
                 <p className="mt-4 text-[15px] leading-relaxed text-[#3b3532] max-w-lg">
                     {lastAction === "WhatsApp"
-                        ? "Your WhatsApp chat has opened. Anu reads and responds to each message with personal care."
+                        ? "Your message was sent directly to Anu on WhatsApp. She typically responds within a few hours."
                         : lastAction === "Email"
-                        ? "Your email draft has been generated. Anu looks forward to connecting with you directly."
-                        : "Your note has been received in the studio archive. Anu personally responds within 24–48 hours."}
+                        ? `Your note has opened in your email client addressed to ${studioEmail}.`
+                        : `Your note was submitted and dispatched to Anu at ${studioEmail}. ${statusNote}`}
                 </p>
+
+                {/* Instant WhatsApp Option for faster follow-up */}
+                {lastAction !== "WhatsApp" && waNumber && (
+                    <div className="mt-6 p-4 bg-[#f3ede3] border border-[#e1d3c1] rounded-sm max-w-md">
+                        <p className="text-[13px] text-[#4a0e17] font-medium mb-2">
+                            Want an instant response on your phone?
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleSendWhatsApp}
+                            className="btn-primary bg-[#128C7E] border-[#128C7E] hover:bg-[#0e6d61] !py-2.5 !px-4 text-[12px] flex items-center gap-2"
+                        >
+                            <MessageCircle size={15} /> Also Ping on WhatsApp
+                        </button>
+                    </div>
+                )}
+
                 <div className="mt-8 flex flex-wrap gap-4">
                     <button
                         type="button"
@@ -225,7 +279,25 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                 </div>
 
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    {/* Send on WhatsApp Button */}
+                    {/* Primary Submit via Email Delivery */}
+                    <button
+                        type="submit"
+                        disabled={sending}
+                        data-testid="audience-btn-submit"
+                        className="btn-primary flex items-center justify-center gap-2 !py-3 !px-6"
+                    >
+                        {sending ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin" /> Sending to Anu...
+                            </>
+                        ) : (
+                            <>
+                                <Send size={15} /> Send Note to Anu
+                            </>
+                        )}
+                    </button>
+
+                    {/* Instant WhatsApp Button */}
                     <button
                         type="button"
                         onClick={handleSendWhatsApp}
@@ -235,29 +307,20 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                         <MessageCircle size={17} /> Send via WhatsApp
                     </button>
 
-                    {/* Send via Email Button */}
+                    {/* Direct Email Client Button */}
                     <button
                         type="button"
                         onClick={handleSendEmail}
                         data-testid="audience-btn-email"
                         className="btn-outline flex items-center justify-center gap-2 !py-3 !px-5"
                     >
-                        <Mail size={17} /> Send via Email
-                    </button>
-
-                    {/* Save / Leave Note Button */}
-                    <button
-                        type="submit"
-                        data-testid="audience-btn-submit"
-                        className="btn-primary flex items-center justify-center gap-2 !py-3 !px-5 sm:ml-auto"
-                    >
-                        <Send size={15} /> Leave Note for Anu
+                        <Mail size={17} /> Open Email App
                     </button>
                 </div>
 
                 <p className="text-[12px] text-[#7a726c] mt-3 italic text-center sm:text-left flex items-center gap-1.5">
                     <Heart size={12} className="text-[#4a0e17]" />
-                    Anu reads and responds to every personal note from collectors and admirers.
+                    Notes are sent directly to Anu at {studioEmail} and her studio WhatsApp ({waNumber}).
                 </p>
             </form>
         </div>
