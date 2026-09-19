@@ -1,1 +1,26 @@
-[{"id":"950600fe-ea92-4e75-a28d-da0c7b7c5ab1","name":"Priya Menon","location":"Bengaluru","quote":"The detail and warmth of Anu's work is extraordinary. It has become the soul of our living room.","rating":5,"order":1},{"id":"33ba0388-1f01-49e1-994c-2adc3bd4b69b","name":"James O'Connor","location":"London","quote":"A genuine piece of Indian heritage. The craftsmanship is museum-quality.","rating":5,"order":2},{"id":"d354b006-dec1-4ebb-a7d3-1cd776c160f5","name":"Anjali Rao","location":"Mumbai","quote":"Buying from Anu felt personal. Every artwork carries a story â and she shares it.","rating":5,"order":3}]
+[
+  {
+    "id": "950600fe-ea92-4e75-a28d-da0c7b7c5ab1",
+    "name": "Priya Menon",
+    "location": "Bengaluru",
+    "quote": "The detail and warmth of Anu's work is extraordinary. It has become the soul of our living room.",
+    "rating": 5,
+    "order": 1
+  },
+  {
+    "id": "33ba0388-1f01-49e1-994c-2adc3bd4b69b",
+    "name": "James O'Connor",
+    "location": "London",
+    "quote": "A genuine piece of Indian heritage. The craftsmanship is museum-quality.",
+    "rating": 5,
+    "order": 2
+  },
+  {
+    "id": "d354b006-dec1-4ebb-a7d3-1cd776c160f5",
+    "name": "Anjali Rao",
+    "location": "Mumbai",
+    "quote": "Buying from Anu felt personal. Every artwork carries a story — and she shares it.",
+    "rating": 5,
+    "order": 3
+  }
+]
