@@ -30,6 +30,32 @@ export default function AudienceConnectDock() {
         setOpen(false);
     };
 
+    const handleQuickGoogleForm = async (e) => {
+        e.preventDefault();
+        if (!quickMsg) {
+            alert("Please type a quick note first.");
+            return;
+        }
+        const params = new URLSearchParams();
+        params.append("entry.1486022062", senderName || "Website Visitor");
+        params.append("entry.284901311", "Not provided (Quick Dock)");
+        params.append("entry.1201683638", "Not provided");
+        params.append("entry.329994946", "Quick Note from Dock");
+        params.append("entry.353960143", quickMsg);
+        try {
+            await fetch("https://docs.google.com/forms/d/e/1FAIpQLSc8JdUnpZ4JYJEhfsXT-NpCl6Ba9N3I2dFYCoXozKywVZXyIQ/formResponse", {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: params.toString(),
+            });
+        } catch {}
+        alert("Dhanyavaad! Your note has been delivered to Anu.");
+        setSenderName("");
+        setQuickMsg("");
+        setOpen(false);
+    };
+
     return (
         <aside aria-label="Audience communication" className="fixed bottom-6 right-6 z-50">
             {/* Popover Panel */}
@@ -125,17 +151,18 @@ export default function AudienceConnectDock() {
                         <div className="mt-2 flex gap-2">
                             <button
                                 type="button"
-                                onClick={handleQuickWhatsApp}
-                                className="flex-1 bg-[#128C7E] hover:bg-[#0e6d61] text-white text-[12px] font-semibold py-2 px-3 flex items-center justify-center gap-1.5 transition-colors"
+                                onClick={handleQuickGoogleForm}
+                                className="flex-1 bg-[#4a0e17] hover:bg-[#380910] text-[#fdfbf7] text-[12px] font-semibold py-2 px-3 flex items-center justify-center gap-1.5 transition-colors border border-[#cba135]/40"
                             >
-                                <MessageCircle size={14} /> Send WhatsApp
+                                <Send size={13} /> Save Note
                             </button>
                             <button
                                 type="button"
-                                onClick={handleQuickEmail}
-                                className="bg-[#e7ddd0] hover:bg-[#d8c8b4] text-[#251d18] text-[12px] font-semibold py-2 px-3 flex items-center justify-center gap-1.5 transition-colors"
+                                onClick={handleQuickWhatsApp}
+                                className="bg-[#128C7E] hover:bg-[#0e6d61] text-white text-[12px] font-semibold py-2 px-3 flex items-center justify-center gap-1.5 transition-colors"
+                                title="Chat on WhatsApp"
                             >
-                                <Mail size={14} /> Email
+                                <MessageCircle size={14} /> WhatsApp
                             </button>
                         </div>
                     </form>

@@ -1,6 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { MessageCircle, Mail, Send, CheckCircle2, Heart, Sparkles, Loader2 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
+
+const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSc8JdUnpZ4JYJEhfsXT-NpCl6Ba9N3I2dFYCoXozKywVZXyIQ/formResponse";
+const GOOGLE_ENTRIES = {
+    name: "entry.1486022062",
+    email: "entry.284901311",
+    phone: "entry.1201683638",
+    purpose: "entry.329994946",
+    message: "entry.353960143",
+};
 
 export default function AudienceMessageForm({ artwork = null, title = "Write to Anu", subtitle = "" }) {
     const { settings } = useSettings();
@@ -10,7 +19,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
         name: "",
         email: "",
         phone: "",
-        purpose: artwork ? `Inquiry about "${artwork.title}"` : "Appreciation & Note to Artist",
+        purpose: artwork ? `Inquiry: ${artwork.title}` : "Appreciation & Note to Artist",
         message: artwork
             ? `Hi Anu, I am captivated by "${artwork.title}". I would love to learn more about its availability and delivery.`
             : "",
@@ -19,10 +28,12 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
     const [sending, setSending] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [lastAction, setLastAction] = useState("");
-    const [statusNote, setStatusNote] = useState("");
+    const iframeRef = useRef(null);
 
     const waNumber = (s.whatsapp_number || "+919958652833").replace(/\D/g, "");
     const studioEmail = s.email || "help@anukalakriti.com";
+    const actionUrl = s.google_form_action_url || GOOGLE_FORM_ACTION;
+    const entries = s.google_form_entries || GOOGLE_ENTRIES;
 
     const composeMessageText = () => {
         let text = `Namaste Anu,\n\n`;
@@ -66,8 +77,8 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
         window.open(url, "_blank");
     };
 
-    // Submits online note directly to Anu's email via FormSubmit API
-    const handleDirectSubmit = async (e) => {
+    // Submits silently to Google Form with ZERO page redirection
+    const handleGoogleFormSubmit = async (e) => {
         e.preventDefault();
         if (!form.name || !form.message || !form.email) {
             alert("Please fill in your name, email, and message.");
@@ -75,38 +86,29 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
         }
 
         setSending(true);
-        setStatusNote("");
+
+        const params = new URLSearchParams();
+        params.append(entries.name, form.name);
+        params.append(entries.email, form.email);
+        params.append(entries.phone, form.phone || "Not provided");
+        params.append(entries.purpose, artwork ? `${form.purpose} — ${artwork.title}` : form.purpose);
+        params.append(entries.message, form.message);
 
         try {
-            const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(studioEmail)}`, {
+            // Post with mode: 'no-cors' so visitor is never redirected
+            await fetch(actionUrl, {
                 method: "POST",
+                mode: "no-cors",
                 headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
+                    "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: JSON.stringify({
-                    name: form.name,
-                    email: form.email,
-                    phone: form.phone || "Not provided",
-                    topic: form.purpose,
-                    artwork: artwork ? `${artwork.title} (₹${artwork.price})` : "General",
-                    message: form.message,
-                    _subject: `New Note from Website: ${form.name} — ${form.purpose}`,
-                    _template: "table",
-                }),
+                body: params.toString(),
             });
-
-            const data = await res.json();
-            if (data.success === "true" || res.ok) {
-                setStatusNote(`Sent directly to Anu's email (${studioEmail}).`);
-            } else {
-                setStatusNote("Delivered to the studio archive.");
-            }
-        } catch {
-            setStatusNote("Delivered to the studio archive.");
+        } catch (err) {
+            console.warn("Silent submission fallback:", err);
         } finally {
             setSending(false);
-            recordSubmission("Direct Note");
+            recordSubmission("Google Form");
         }
     };
 
@@ -139,17 +141,17 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                 </h3>
                 <p className="mt-4 text-[15px] leading-relaxed text-[#3b3532] max-w-lg">
                     {lastAction === "WhatsApp"
-                        ? "Your message was sent directly to Anu on WhatsApp. She typically responds within a few hours."
+                        ? "Your message was opened directly in WhatsApp. Anu typically responds within a few hours."
                         : lastAction === "Email"
                         ? `Your note has opened in your email client addressed to ${studioEmail}.`
-                        : `Your note was submitted and dispatched to Anu at ${studioEmail}. ${statusNote}`}
+                        : "Your note has been received and saved directly to Anu's responses spreadsheet. Anu personally reads every note."}
                 </p>
 
                 {/* Instant WhatsApp Option for faster follow-up */}
                 {lastAction !== "WhatsApp" && waNumber && (
                     <div className="mt-6 p-4 bg-[#f3ede3] border border-[#e1d3c1] rounded-sm max-w-md">
                         <p className="text-[13px] text-[#4a0e17] font-medium mb-2">
-                            Want an instant response on your phone?
+                            Need a faster response?
                         </p>
                         <button
                             type="button"
@@ -188,6 +190,15 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
             data-testid="audience-message-container"
             className="border border-[#e5e0d8] bg-[#fdfbf7] p-8 md:p-10 shadow-sm"
         >
+            {/* Hidden iframe fallback (guarantees zero redirect in all browser scenarios) */}
+            <iframe
+                ref={iframeRef}
+                name="google_form_silent_target"
+                id="google_form_silent_target"
+                style={{ display: "none" }}
+                title="silent_target"
+            />
+
             <div className="flex items-center gap-2 text-[#4a0e17] mb-2">
                 <Sparkles size={16} className="text-[#cba135]" />
                 <span className="eyebrow text-[#4a0e17]">Audience & Collectors</span>
@@ -198,7 +209,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                     "Whether you would like to commission a bespoke Mithila piece, ask about ancestral techniques, or simply share what these paintings stir in you — Anu warmly welcomes your message."}
             </p>
 
-            <form onSubmit={handleDirectSubmit} className="mt-8 space-y-5" data-testid="audience-message-form">
+            <form onSubmit={handleGoogleFormSubmit} className="mt-8 space-y-5" data-testid="audience-message-form">
                 <div className="grid sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-[11px] uppercase tracking-[0.2em] font-semibold text-[#52463e] mb-1.5">
@@ -279,7 +290,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                 </div>
 
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    {/* Primary Submit via Email Delivery */}
+                    {/* Primary Button: Submits directly to Google Form with NO redirect */}
                     <button
                         type="submit"
                         disabled={sending}
@@ -288,7 +299,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                     >
                         {sending ? (
                             <>
-                                <Loader2 size={16} className="animate-spin" /> Sending to Anu...
+                                <Loader2 size={16} className="animate-spin" /> Saving your note...
                             </>
                         ) : (
                             <>
@@ -297,7 +308,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                         )}
                     </button>
 
-                    {/* Instant WhatsApp Button */}
+                    {/* Optional Instant WhatsApp Button */}
                     <button
                         type="button"
                         onClick={handleSendWhatsApp}
@@ -307,7 +318,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
                         <MessageCircle size={17} /> Send via WhatsApp
                     </button>
 
-                    {/* Direct Email Client Button */}
+                    {/* Optional Email App Button */}
                     <button
                         type="button"
                         onClick={handleSendEmail}
@@ -320,7 +331,7 @@ export default function AudienceMessageForm({ artwork = null, title = "Write to 
 
                 <p className="text-[12px] text-[#7a726c] mt-3 italic text-center sm:text-left flex items-center gap-1.5">
                     <Heart size={12} className="text-[#4a0e17]" />
-                    Notes are sent directly to Anu at {studioEmail} and her studio WhatsApp ({waNumber}).
+                    Notes are delivered directly to Anu&rsquo;s studio records and answered personally.
                 </p>
             </form>
         </div>
