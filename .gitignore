@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+dist/
+.pnp
+.pnp.js
+
+# Env files
+.env
+.env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+*.tgz
