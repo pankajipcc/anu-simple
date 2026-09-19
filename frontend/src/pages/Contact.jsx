@@ -3,7 +3,7 @@ import { useSettings } from "@/lib/settings";
 import Breadcrumbs from "@/components/site/Breadcrumbs";
 import Seo from "@/components/site/Seo";
 import LocalBusinessJsonLd from "@/components/site/LocalBusinessJsonLd";
-import PreviewNotice from "@/components/site/PreviewNotice";
+import AudienceMessageForm from "@/components/site/AudienceMessageForm";
 
 // Split the address string on commas into visual lines, trimming empties
 function AddressLines({ address }) {
@@ -114,9 +114,12 @@ export default function Contact() {
                     </div>
                 </div>
 
-                {/* RIGHT — preview mode notice (form disabled) */}
+                {/* RIGHT — Audience communication form */}
                 <div className="md:col-span-7">
-                    <PreviewNotice testId="contact-preview-notice" />
+                    <AudienceMessageForm
+                        title="Write to Anu"
+                        subtitle="Send an appreciation note, enquire about commissions, or discuss custom Mithila paintings. Choose to send directly via WhatsApp, Email, or leave a message for her studio."
+                    />
                 </div>
             </section>
 

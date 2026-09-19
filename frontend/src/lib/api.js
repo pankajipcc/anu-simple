@@ -15,7 +15,7 @@ async function getJSON(filename) {
 
 export async function fetchArtworks({ featured, category, q, limit } = {}) {
     let items = await getJSON("artworks.json");
-    if (featured) items = items.filter((a) => a.featured);
+    if (featured) items = items.filter((a) => a.featured || a.six_stories);
     if (category && category !== "all") items = items.filter((a) => a.category === category);
     if (q) {
         const lc = q.toLowerCase();
@@ -23,7 +23,8 @@ export async function fetchArtworks({ featured, category, q, limit } = {}) {
             (a) =>
                 a.title?.toLowerCase().includes(lc) ||
                 a.description?.toLowerCase().includes(lc) ||
-                a.category?.toLowerCase().includes(lc)
+                a.category?.toLowerCase().includes(lc) ||
+                a.story?.toLowerCase().includes(lc)
         );
     }
     items = items.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));

@@ -1,1 +1,324 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Anu Studio</title><style>*{box-sizing:border-box}body{margin:0;background:#f8f5ef;color:#251d18;font:15px Arial}.bar{background:#251d18;color:#fff;padding:17px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}.bar h1,h2,h3{font-family:Georgia;font-weight:400}.bar h1{margin:0;font-size:25px}.bar small{opacity:.75}main{max-width:1100px;margin:25px auto;padding:0 18px}.top{display:flex;justify-content:space-between;align-items:center}.top h2{font-size:30px}button{background:#251d18;color:#fff;border:0;border-radius:4px;padding:10px 14px;cursor:pointer;font-weight:bold}.alt{background:#e7ddd0;color:#251d18}.red{background:#8a2525}.ship{background:#b06a24}.notice{min-height:22px;color:#80531d}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}.card{background:#fff;border:1px solid #e1d7cb}.card img{width:100%;height:180px;object-fit:cover;background:#ddd}.card div{padding:12px}.card h3{font-size:20px;margin:0 0 5px}.card p{font-size:13px;color:#705f54}.actions{display:flex;gap:6px}.actions button{font-size:12px;padding:7px 9px}dialog{border:0;width:min(760px,95vw);max-height:94vh;padding:0;box-shadow:0 12px 55px #0008}.form{padding:24px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.wide{grid-column:1/-1}label{font-size:11px;text-transform:uppercase;font-weight:bold;letter-spacing:.08em}input,select,textarea{width:100%;display:block;margin-top:5px;padding:9px;border:1px solid #cfc2b3;font:15px Arial}textarea{height:75px}.row{margin-top:18px;display:flex;justify-content:flex-end;gap:10px}@media(max-width:600px){.fields{grid-template-columns:1fr}.bar small{display:none}}</style><header class="bar"><div><h1>Anu Kalakriti Studio</h1><small>Changes stay local until you press Ship.</small></div><button class="ship" onclick="ship()">Ship to website</button></header><main><div class="top"><h2>Artwork collection</h2><button onclick="newArt()">+ Add artwork</button></div><p class="notice" id="notice"></p><section class="grid" id="grid"></section></main><dialog id="modal"><form class="form" onsubmit="save(event)"><h2 id="heading">Artwork</h2><div class="fields"><label>Title<input id="title" required></label><label>Category<select id="category"><option>madhubani</option><option>mithila</option><option>godna</option><option>folk-contemporary</option></select></label><label>Price (INR)<input id="price" type="number"></label><label>Year<input id="year" type="number"></label><label>Medium<input id="medium"></label><label>Size<input id="size"></label><label>Availability<select id="availability"><option>available</option><option>reserved</option><option>sold</option></select></label><label>Gallery position<input id="order" type="number"></label><label class="wide">Image URL<input id="image_url" required></label><label class="wide">Or upload image<input id="upload" type="file" accept="image/*"></label><label class="wide">Description<textarea id="description"></textarea></label><label class="wide">Story<textarea id="story"></textarea></label><label><input id="featured" type="checkbox" style="width:auto;display:inline"> Featured on home</label><label><input id="certificate" type="checkbox" style="width:auto;display:inline"> Certificate included</label></div><div class="row"><button type="button" class="alt" onclick="modal.close()">Cancel</button><button>Save draft</button></div></form></dialog><script>let list=[],edit;const $=x=>document.getElementById(x),note=x=>$("notice").textContent=x;async function load(){list=await fetch('/api/artworks').then(x=>x.json());render()}function render(){grid.innerHTML='';list.sort((a,b)=>a.order-b.order).forEach(a=>{let e=document.createElement('article');e.className='card';e.innerHTML=`<img src="${a.image_url}"><div><h3>${a.title}</h3><p>${a.category} · ${a.availability} · #${a.order}</p><span class="actions"><button class="alt">Edit</button><button class="alt">↑</button><button class="alt">↓</button><button class="red">Delete</button></span></div>`;let b=e.querySelectorAll('button');b[0].onclick=()=>open(a);b[1].onclick=()=>move(a,-1);b[2].onclick=()=>move(a,1);b[3].onclick=()=>del(a);grid.append(e)})}function newArt(){edit={id:crypto.randomUUID(),title:'',category:'madhubani',price:0,year:new Date().getFullYear(),medium:'Natural pigments on handmade paper',size:'',availability:'available',description:'',story:'',image_url:'',additional_images:[],featured:false,certificate:true,order:list.length+1,currency:'INR',created_at:new Date().toISOString()};open()}function open(a){if(a)edit=structuredClone(a);heading.textContent=edit.title?'Edit artwork':'Add artwork';for(let k of ['title','category','price','year','medium','size','availability','order','image_url','description','story'])$(k).value=edit[k]??'';featured.checked=!!edit.featured;certificate.checked=!!edit.certificate;upload.value='';modal.showModal()}async function save(e){e.preventDefault();for(let k of ['title','category','price','year','medium','size','availability','order','image_url','description','story'])edit[k]=$(k).value;edit.price=+edit.price;edit.year=+edit.year;edit.order=+edit.order;edit.featured=featured.checked;edit.certificate=certificate.checked;edit.slug=edit.slug||edit.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')+'-'+edit.id.slice(0,5);let f=upload.files[0];if(f){note('Uploading…');let r=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':f.type,'X-File-Name':f.name},body:f}),d=await r.json();if(!r.ok)return note(d.message);edit.image_url=d.url}let i=list.findIndex(x=>x.id===edit.id);i<0?list.push(edit):list[i]=edit;await persist('Draft saved locally. Press Ship when ready.');modal.close()}async function persist(m){list.sort((a,b)=>a.order-b.order).forEach((a,i)=>a.order=i+1);await fetch('/api/artworks',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(list)});note(m);render()}async function move(a,d){let i=list.indexOf(a),j=i+d;if(j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];await persist('Position saved locally. Press Ship when ready.')}async function del(a){if(confirm('Delete '+a.title+'?')){list=list.filter(x=>x.id!==a.id);await persist('Artwork deleted locally. Press Ship when ready.')}}async function ship(){if(!confirm('Push saved changes to GitHub and deploy Vercel?'))return;note('Shipping…');let d=await fetch('/api/ship',{method:'POST'}).then(x=>x.json());note(d.message+(d.detail?' '+d.detail:''))}load()</script>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anu Kalakriti Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f8f5ef;color:#251d18;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+.bar{background:#251d18;color:#fff;padding:16px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
+.bar h1{margin:0;font-family:Georgia,serif;font-weight:normal;font-size:24px;letter-spacing:-0.01em}
+.bar small{opacity:.75;font-size:12px}
+main{max-width:1100px;margin:28px auto;padding:0 20px}
+.top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.top h2{font-family:Georgia,serif;font-weight:normal;font-size:30px;margin:0}
+button{background:#251d18;color:#fff;border:0;border-radius:4px;padding:9px 15px;cursor:pointer;font-weight:600;font-size:13px;transition:all .15s}
+button:hover{opacity:.9}
+button:disabled{opacity:.35;cursor:not-allowed}
+.alt{background:#e7ddd0;color:#251d18}
+.alt:hover{background:#dccebe}
+.red{background:#8a2525;color:#fff}
+.red:hover{background:#711c1c}
+.ship{background:#b06a24;color:#fff}
+.ship:hover{background:#9b5a1b}
+.notice{min-height:24px;color:#80531d;font-weight:500;margin:12px 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.card{background:#fff;border:1px solid #e1d7cb;border-radius:4px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.04);display:flex;flex-col:column;flex-direction:column}
+.card-img-wrap{position:relative;width:100%;height:190px;background:#ece5da}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.tag-badge{position:absolute;top:9px;left:9px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:3px}
+.tag-six{background:#4a0e17;color:#fdfbf7;border:1px solid #cba135;box-shadow:0 2px 4px rgba(0,0,0,0.25)}
+.tag-gallery{background:rgba(37,29,24,0.85);color:#e7ddd0;border:1px solid rgba(255,255,255,0.15)}
+.card div.info{padding:14px;flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.card h3{font-family:Georgia,serif;font-size:18px;margin:0 0 6px;line-height:1.25}
+.card p{font-size:12px;color:#705f54;margin:0 0 12px;line-height:1.4}
+.actions{display:flex;gap:6px;align-items:center}
+.actions button{font-size:12px;padding:6px 10px}
+dialog{border:0;width:min(780px,95vw);max-height:94vh;padding:0;box-shadow:0 18px 60px rgba(0,0,0,0.35);border-radius:6px;overflow-y:auto}
+dialog::backdrop{background:rgba(0,0,0,0.6)}
+.form{padding:26px}
+.form h2{font-family:Georgia,serif;margin:0 0 18px;font-weight:normal;font-size:26px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.wide{grid-column:1/-1}
+label{font-size:11px;text-transform:uppercase;font-weight:bold;letter-spacing:.08em;color:#52463e}
+input,select,textarea{width:100%;display:block;margin-top:5px;padding:9px 11px;border:1px solid #cfc2b3;border-radius:3px;font:14px inherit;background:#fff;color:#251d18}
+input:focus,select:focus,textarea:focus{outline:2px solid #b06a24;border-color:transparent}
+textarea{height:80px;resize:vertical}
+.toggle-box{grid-column:1/-1;background:#f3ece2;border:1px solid #d9cbbe;border-radius:4px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px;cursor:pointer}
+.toggle-box input[type="checkbox"]{width:18px;height:18px;margin-top:2px;cursor:pointer;flex-shrink:0}
+.toggle-box-text strong{font-size:13px;display:block;color:#4a0e17;text-transform:none;letter-spacing:normal}
+.toggle-box-text span{font-size:12px;color:#6b5d52;text-transform:none;letter-spacing:normal;font-weight:normal}
+.row{margin-top:22px;padding-top:16px;border-top:1px solid #e8ded4;display:flex;justify-content:flex-end;gap:12px}
+@media(max-width:640px){.fields{grid-template-columns:1fr}.bar small{display:none}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div>
+    <h1>Anu Kalakriti Studio</h1>
+    <small>Local changes remain in draft until you click Ship to website.</small>
+  </div>
+  <button class="ship" onclick="ship()">Ship to website</button>
+</header>
+
+<main>
+  <div class="top">
+    <h2>Artwork collection</h2>
+    <button onclick="newArt()">+ Add artwork</button>
+  </div>
+  <p class="notice" id="notice"></p>
+  <section class="grid" id="grid"></section>
+</main>
+
+<dialog id="modal">
+  <form class="form" onsubmit="save(event)">
+    <h2 id="heading">Artwork</h2>
+    <div class="fields">
+      <label>Title<input id="title" required></label>
+      <label>Category
+        <select id="category">
+          <option value="madhubani">madhubani</option>
+          <option value="mithila">mithila</option>
+          <option value="godna">godna</option>
+          <option value="folk-contemporary">folk-contemporary</option>
+        </select>
+      </label>
+      <label>Price (INR)<input id="price" type="number" min="0"></label>
+      <label>Year<input id="year" type="number"></label>
+      <label>Medium<input id="medium"></label>
+      <label>Size<input id="size" placeholder="e.g. 22 x 30 in"></label>
+      <label>Availability
+        <select id="availability">
+          <option value="available">available</option>
+          <option value="reserved">reserved</option>
+          <option value="sold">sold</option>
+        </select>
+      </label>
+      <label>Gallery position / Order<input id="order" type="number" min="1"></label>
+
+      <!-- SIX STORIES TOGGLE -->
+      <label class="toggle-box">
+        <input id="featured" type="checkbox">
+        <div class="toggle-box-text">
+          <strong>✦ Include in "Six Stories" (Featured on Main Page)</strong>
+          <span>When checked, this artwork appears among the curated Six Stories on the homepage, complete with its deep backstory and photo tag.</span>
+        </div>
+      </label>
+
+      <label class="wide">Image URL<input id="image_url" required></label>
+      <label class="wide">Or upload image file<input id="upload" type="file" accept="image/*"></label>
+      <label class="wide">Description<textarea id="description" placeholder="Visual description of the piece..."></textarea></label>
+      <label class="wide">Deep Backstory (Visible on hover)<textarea id="story" placeholder="Folklore, cultural meaning, pigment traditions, and artist memory..."></textarea></label>
+      
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input id="certificate" type="checkbox" style="width:auto;margin:0"> Certificate of authenticity included
+      </label>
+    </div>
+
+    <div class="row">
+      <button type="button" class="alt" onclick="modal.close()">Cancel</button>
+      <button type="submit">Save draft</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+let list = [], edit;
+const $ = x => document.getElementById(x);
+const note = x => $("notice").textContent = x;
+
+async function load() {
+  try {
+    list = await fetch('/api/artworks').then(x => x.json());
+    render();
+  } catch (e) {
+    note('Failed to load artworks: ' + e.message);
+  }
+}
+
+function render() {
+  grid.innerHTML = '';
+  // Ensure array is strictly sorted by order
+  list.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+
+  list.forEach((a, i) => {
+    let e = document.createElement('article');
+    e.className = 'card';
+    const isSix = !!(a.featured || a.six_stories);
+
+    e.innerHTML = `
+      <div class="card-img-wrap">
+        <img src="${a.image_url}" alt="${a.title}">
+        <span class="tag-badge ${isSix ? 'tag-six' : 'tag-gallery'}">
+          ${isSix ? '✦ Six Stories (Main)' : 'Gallery Only'}
+        </span>
+      </div>
+      <div class="info">
+        <div>
+          <h3>${a.title}</h3>
+          <p>${a.category} · ${a.availability} · #${a.order}</p>
+        </div>
+        <span class="actions">
+          <button type="button" class="alt edit-btn">Edit</button>
+          <button type="button" class="alt up-btn" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button type="button" class="alt down-btn" title="Move down" ${i === list.length - 1 ? 'disabled' : ''}>↓</button>
+          <button type="button" class="red del-btn" title="Delete">Delete</button>
+        </span>
+      </div>
+    `;
+
+    let editBtn = e.querySelector('.edit-btn');
+    let upBtn = e.querySelector('.up-btn');
+    let downBtn = e.querySelector('.down-btn');
+    let delBtn = e.querySelector('.del-btn');
+
+    editBtn.onclick = () => open(a);
+    upBtn.onclick = () => move(a, -1);
+    downBtn.onclick = () => move(a, 1);
+    delBtn.onclick = () => del(a);
+
+    grid.append(e);
+  });
+}
+
+function newArt() {
+  edit = {
+    id: crypto.randomUUID(),
+    title: '',
+    category: 'madhubani',
+    price: 0,
+    year: new Date().getFullYear(),
+    medium: 'Natural pigments on handmade paper',
+    size: '',
+    availability: 'available',
+    description: '',
+    story: '',
+    image_url: '',
+    additional_images: [],
+    featured: false,
+    six_stories: false,
+    certificate: true,
+    order: list.length + 1,
+    currency: 'INR',
+    created_at: new Date().toISOString()
+  };
+  open();
+}
+
+function open(a) {
+  if (a) edit = structuredClone(a);
+  heading.textContent = edit.title ? `Edit: ${edit.title}` : 'Add new artwork';
+  for (let k of ['title', 'category', 'price', 'year', 'medium', 'size', 'availability', 'order', 'image_url', 'description', 'story']) {
+    $(k).value = edit[k] ?? '';
+  }
+  featured.checked = !!(edit.featured || edit.six_stories);
+  certificate.checked = !!edit.certificate;
+  upload.value = '';
+  modal.showModal();
+}
+
+async function save(e) {
+  e.preventDefault();
+  for (let k of ['title', 'category', 'price', 'year', 'medium', 'size', 'availability', 'order', 'image_url', 'description', 'story']) {
+    edit[k] = $(k).value;
+  }
+  edit.price = Number(edit.price) || 0;
+  edit.year = Number(edit.year) || new Date().getFullYear();
+  edit.order = Number(edit.order) || (list.length + 1);
+  edit.featured = featured.checked;
+  edit.six_stories = featured.checked; // keep Six Stories tag synced
+  edit.certificate = certificate.checked;
+  edit.slug = edit.slug || edit.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + edit.id.slice(0, 5);
+
+  let f = upload.files[0];
+  if (f) {
+    note('Uploading image…');
+    let r = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': f.type, 'X-File-Name': f.name },
+      body: f
+    });
+    let d = await r.json();
+    if (!r.ok) return note(d.message || 'Upload failed');
+    edit.image_url = d.url;
+  }
+
+  let i = list.findIndex(x => x.id === edit.id);
+  if (i < 0) {
+    list.push(edit);
+  } else {
+    list[i] = edit;
+  }
+
+  // Sort and re-index
+  list.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0)).forEach((item, idx) => {
+    item.order = idx + 1;
+  });
+
+  await fetch('/api/artworks', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(list)
+  });
+
+  note('Draft saved locally. Press Ship when ready.');
+  render();
+  modal.close();
+}
+
+// FIXED: move(a, d) swaps the items and explicitly reassigns sequential order numbers!
+async function move(a, d) {
+  list.sort((x, y) => (Number(x.order) || 0) - (Number(y.order) || 0));
+  let i = list.findIndex(x => x.id === a.id);
+  let j = i + d;
+  if (j < 0 || j >= list.length) return;
+
+  // Swap in array
+  let temp = list[i];
+  list[i] = list[j];
+  list[j] = temp;
+
+  // Update order property sequentially for all items
+  list.forEach((item, idx) => {
+    item.order = idx + 1;
+  });
+
+  await fetch('/api/artworks', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(list)
+  });
+
+  note(`Moved "${a.title}" ${d < 0 ? 'up' : 'down'} to position #${list[j].order}. Press Ship when ready.`);
+  render();
+}
+
+async function del(a) {
+  if (confirm(`Delete "${a.title}"?`)) {
+    list = list.filter(x => x.id !== a.id);
+    list.sort((x, y) => (Number(x.order) || 0) - (Number(y.order) || 0)).forEach((item, idx) => {
+      item.order = idx + 1;
+    });
+    await fetch('/api/artworks', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(list)
+    });
+    note(`"${a.title}" deleted locally. Press Ship when ready.`);
+    render();
+  }
+}
+
+async function ship() {
+  if (!confirm('Push saved changes to GitHub and deploy Vercel?')) return;
+  note('Shipping to GitHub and triggering Vercel…');
+  let d = await fetch('/api/ship', { method: 'POST' }).then(x => x.json());
+  note(d.message + (d.detail ? ' ' + d.detail : ''));
+}
+
+load();
+</script>
+</body>
+</html>

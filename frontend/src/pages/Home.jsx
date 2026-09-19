@@ -169,32 +169,42 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* ────────────────────────── FEATURED ────────────────────────── */}
-            <section data-testid="featured-section" className="py-24 md:py-32">
+            {/* ────────────────────────── FEATURED / SIX STORIES ────────────────────────── */}
+            <section data-testid="featured-section" className="py-24 md:py-32 bg-[#fdfbf7]">
                 <div className="container-editorial">
-                    <div className="flex items-end justify-between mb-16">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
                         <Reveal>
-                            <p className="eyebrow">Selected Works</p>
-                            <h2 className="headline headline-lg mt-4">
+                            <p className="eyebrow">— The Signature Collection</p>
+                            <h2 className="headline headline-lg mt-3">
                                 Six pieces,<br />six stories.
                             </h2>
+                            <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[#52463e]">
+                                Each painting carries ancestral folklore, sacred wedding rites, and natural pigments. Hover over any piece to unveil its hidden backstory.
+                            </p>
                         </Reveal>
-                        <Link
-                            to="/gallery"
-                            data-testid="featured-view-all"
-                            className="hidden md:inline text-[13px] uppercase tracking-[0.22em] link-underline pb-2"
-                        >
-                            View the full gallery →
-                        </Link>
+                        <Reveal delay={100}>
+                            <Link
+                                to="/gallery"
+                                data-testid="featured-view-all"
+                                className="inline-flex items-center gap-2 text-[13px] uppercase tracking-[0.22em] link-underline pb-2 font-medium text-[#4a0e17]"
+                            >
+                                View full collection →
+                            </Link>
+                        </Reveal>
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
                         {featured.slice(0, 6).map((a, i) => (
-                            <Reveal key={a.id} delay={(i % 3) * 100}>
+                            <Reveal key={a.id} delay={(i % 3) * 120}>
                                 <div className="relative">
-                                    <span className="absolute -top-6 left-0 handwritten text-2xl text-[#b89b5e]">
-                                        Piece &bull; {String(i + 1).padStart(2, "0")}
-                                    </span>
+                                    <div className="flex items-baseline justify-between mb-3 px-1">
+                                        <span className="handwritten text-2xl text-[#b89b5e]">
+                                            Story &bull; {String(i + 1).padStart(2, "0")}
+                                        </span>
+                                        <span className="text-[11px] uppercase tracking-[0.22em] text-[#7a726c] font-medium">
+                                            {a.category?.replace(/-/g, " ")}
+                                        </span>
+                                    </div>
                                     <ArtworkCard art={a} priority={i < 3} />
                                 </div>
                             </Reveal>
@@ -358,14 +368,25 @@ export default function Home() {
                             and replies to every enquiry, often within a day.
                         </p>
                     </div>
-                    <div className="md:col-span-4 flex md:justify-end">
+                    <div className="md:col-span-4 flex flex-col sm:flex-row md:flex-col gap-3 md:items-end justify-center">
                         <Link
                             data-testid="contact-cta-btn"
                             to="/contact"
-                            className="btn-outline btn-outline-ivory"
+                            className="btn-outline btn-outline-ivory text-center"
                         >
                             Start a conversation
                         </Link>
+                        {s.whatsapp_number && (
+                            <a
+                                href={`https://wa.me/${s.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent("Hi Anu, I am visiting your website and would love to connect about your art.")}`}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                                data-testid="home-whatsapp-cta"
+                                className="inline-flex items-center justify-center gap-2 bg-[#128C7E] hover:bg-[#0e6d61] text-white px-5 py-3 text-[12px] uppercase tracking-[0.2em] font-semibold transition-colors"
+                            >
+                                WhatsApp Anu Directly
+                            </a>
+                        )}
                     </div>
                 </div>
             </section>

@@ -6,7 +6,7 @@ import { useSettings } from "@/lib/settings";
 import ArtworkCard from "@/components/site/ArtworkCard";
 import Breadcrumbs from "@/components/site/Breadcrumbs";
 import Seo from "@/components/site/Seo";
-import PreviewNotice from "@/components/site/PreviewNotice";
+import AudienceMessageForm from "@/components/site/AudienceMessageForm";
 
 export default function ArtworkDetail() {
     const { slug } = useParams();
@@ -128,7 +128,17 @@ export default function ArtworkDetail() {
 
                     <p className="mt-6 text-[15px] leading-relaxed text-[#3b3532]">{art.description}</p>
                     {art.story && (
-                        <p className="mt-4 text-[14px] leading-relaxed text-[#3b3532] italic">{art.story}</p>
+                        <div className="mt-6 p-5 border-l-2 border-[#cba135] bg-[#fdfbf7] shadow-sm">
+                            <span className="text-[10px] uppercase tracking-[0.25em] text-[#cba135] font-semibold flex items-center gap-1.5 mb-2">
+                                <span>✦</span> Ancestral Backstory & Lore
+                            </span>
+                            <blockquote className="font-serif italic text-[15px] leading-relaxed text-[#251d18]">
+                                &ldquo;{art.story}&rdquo;
+                            </blockquote>
+                            <span className="block mt-2 text-[11px] uppercase tracking-[0.2em] text-[#7a726c]">
+                                — As recounted by Anu Jha
+                            </span>
+                        </div>
                     )}
 
                     <div ref={primaryCtaRef} className="mt-10 flex flex-wrap gap-3">
@@ -179,17 +189,23 @@ export default function ArtworkDetail() {
             <section id="enquiry" className="border-y border-[#e5e0d8] bg-[#f7f3ea]/50 py-20">
                 <div className="container-editorial grid md:grid-cols-12 gap-12">
                     <div className="md:col-span-5">
-                        <p className="eyebrow">Buy · Enquire</p>
+                        <p className="eyebrow">Direct Contact</p>
                         <h2 className="headline headline-md mt-3">
                             Interested in this piece? Write to Anu.
                         </h2>
                         <p className="mt-4 text-[14px] leading-relaxed text-[#3b3532]">
-                            Every enquiry is read by the artist personally. Expect a response within 24–48 hours.
+                            Every enquiry is received and answered by the artist personally. Choose to connect via instant WhatsApp, Email, or leave a note.
                         </p>
+                        <div className="mt-6 p-4 bg-[#fdfbf7] border border-[#e5e0d8] text-[13px] text-[#52463e] space-y-2">
+                            <p><strong>Title:</strong> {art.title}</p>
+                            <p><strong>Medium:</strong> {art.medium}</p>
+                            <p><strong>Size:</strong> {art.size}</p>
+                            <p><strong>Price:</strong> {inr.format(art.price)}</p>
+                        </div>
                     </div>
-                    <form onSubmit={(e) => e.preventDefault()} className="md:col-span-7" data-testid="artwork-enquiry-form" aria-hidden="true">
-                        <PreviewNotice testId="artwork-preview-notice" />
-                    </form>
+                    <div className="md:col-span-7">
+                        <AudienceMessageForm artwork={art} title={`Enquire about "${art.title}"`} />
+                    </div>
                 </div>
             </section>
 
